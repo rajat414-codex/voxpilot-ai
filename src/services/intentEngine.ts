@@ -4,24 +4,28 @@ export class IntentEngine {
   private playVerbs = [
     'play', 'baja', 'bajao', 'chala', 'chalao', 'sunao', 'laga', 'lagao', 'start',
     'baja do', 'chala do', 'laga do', 'sunao na', 'play kar', 'play kr', 'play karo',
+    'chala de', 'baja de', 'laga de', 'bajade', 'chalade', 'lagade',
     'बजाओ', 'चलाओ', 'सुनाओ', 'लगाओ'
   ];
 
   private openVerbs = [
     'open', 'khol', 'kholo', 'launch', 'start', 'chalu', 'chalu karo', 'dikhao', 'dekhna',
-    'khol do', 'open karo', 'open kr', 'open kro',
+    'khol do', 'open karo', 'open kr', 'open kro', 'khol de',
     'खोलो', 'खोल', 'चालू करो', 'दिखाओ'
   ];
 
   private fillerWords = [
     'and', 'aur', 'ke', 'ka', 'ki', 'ko', 'me', 'mein', 'par', 'pe', 'pls', 'please',
-    'karo', 'kr', 'kro', 'kariye', 'kar do', 'kar dena', 'bhi', 'to'
+    'karo', 'kr', 'kro', 'kariye', 'kar do', 'kar dena', 'bhi', 'to', 'ek', 'koi', 'kuch', 'bhi'
   ];
 
   public cleanExtractedQuery(text: string): string {
     let q = text.trim();
     // Strip quotes if present
     q = q.replace(/^["']|["']$/g, '').trim();
+
+    // Strip common conversational artifacts like "video title:", "video title", "title:"
+    q = q.replace(/\b(video\s+ka\s+title|video\s+title\s*:?|title\s*:?)\b/gi, '').trim();
 
     // Strip trailing or leading fillers
     for (const filler of this.fillerWords) {
@@ -33,16 +37,40 @@ export class IntentEngine {
     return q.replace(/\s+/g, ' ').replace(/^["']|["']$/g, '').trim();
   }
 
+  // Detects if the user asked for a random song/video or "anything"
+  public isRandomRequest(text: string): boolean {
+    const lower = text.toLowerCase();
+    const randomPatterns = [
+      'kuch bhi',
+      'koi bhi',
+      'random',
+      'surprise me',
+      'anything',
+      'koi gaana',
+      'koi video',
+      'koi accha sa',
+      'koi song',
+      'play something',
+      'kuch play krde',
+      'kuch sunao',
+      'kuch bajao',
+      'kuch chalao',
+    ];
+    return randomPatterns.some((pattern) => lower.includes(pattern));
+  }
+
   public parseIntent(userText: string): IntentResult {
     const rawText = userText.trim();
     const lowerText = rawText.toLowerCase();
 
-    // Clean common conversational greetings & bot invocations
+    // Clean common conversational greetings, bot invocations & emotional Hindi prefixes
     let cleanText = lowerText
-      .replace(/^(bhai|are yaar|hey vox|vox|voxpilot|alexa|siri|jarvis|bot|sun|suno|kripya|please)\s+/i, '')
+      .replace(/^(abee+|abe+|are yaar|yaar|bhai|hey vox|vox|voxpilot|alexa|siri|jarvis|bot|sun|suno|kripya|please)\s+/i, '')
       .trim();
 
-    // 1. SPOTIFY COMMANDS (e.g. 'spotify pe "song name" play kr', 'play kesariya on spotify')
+    const isRandom = this.isRandomRequest(cleanText);
+
+    // 1. SPOTIFY COMMANDS (e.g. 'spotify pe chaleya play kr', 'spotify pe koi bhi gana')
     if (cleanText.includes('spotify')) {
       let query = cleanText;
       // Strip platform indicators
@@ -57,21 +85,26 @@ export class IntentEngine {
       query = query.replace(/\b(gaana|gaane|song|track|music)\b/gi, '');
       query = this.cleanExtractedQuery(query);
 
+      const finalQuery = isRandom || !query ? 'RANDOM_HIT' : query;
+
       return {
         action: 'open_spotify',
         platform: 'spotify',
-        parameters: { query: query || 'Trending Songs' },
-        response_text: `Playing ${query || 'music'} on Spotify.`,
+        parameters: { query: finalQuery },
+        response_text: isRandom ? 'Playing a top hit on Spotify.' : `Playing ${finalQuery} on Spotify.`,
         raw_command: rawText,
       };
     }
 
-    // 2. YOUTUBE & VIDEO COMMANDS (e.g. 'video open kro', 'youtube pe chaleya play kr', 'play video')
+    // 2. YOUTUBE & VIDEO COMMANDS (e.g. 'video open kro', 'video title carryminati roast play kr', 'kuch bhi play krde')
     const isVideoSpecific = cleanText.includes('video') || cleanText.includes('youtube') || cleanText.includes('yt');
-    const hasPlayVerb = ['chalao', 'bajao', 'sunao', 'play', 'chala do', 'baja do'].some((v) => cleanText.includes(v));
+    const hasPlayVerb = ['chalao', 'bajao', 'sunao', 'play', 'chala do', 'baja do', 'chala de', 'baja de', 'lagao', 'laga do'].some(
+      (v) => cleanText.includes(v)
+    );
 
-    if (isVideoSpecific || hasPlayVerb) {
+    if (isVideoSpecific || hasPlayVerb || isRandom) {
       let query = cleanText;
+
       // Strip platform indicators
       query = query.replace(/\b(on\s+youtube|youtube\s+pe|youtube\s+par|youtube\s+me|youtube|yt)\b/gi, '');
 
@@ -80,20 +113,26 @@ export class IntentEngine {
         query = query.replace(new RegExp(`\\b${verb}\\b`, 'gi'), '');
       }
 
-      // Strip video / song words
-      query = query.replace(/\b(video|gaana|gaane|song|track|music)\b/gi, '');
+      // Strip video / song words and "title" keywords
+      query = query.replace(/\b(video\s+ka\s+title|video\s+title\s*:?|title\s*:?|video|gaana|gaane|song|track|music)\b/gi, '');
       query = this.cleanExtractedQuery(query);
 
-      // If user literally said "video open kro" with no title, default to a trending video
-      if (!query && isVideoSpecific) {
-        query = 'Trending Music Video';
+      // Check if it's a random query or empty
+      if (isRandom || !query || query.length < 2) {
+        return {
+          action: 'play_youtube',
+          platform: 'youtube',
+          parameters: { query: 'RANDOM_HIT' },
+          response_text: 'Playing a trending hit video for you on YouTube.',
+          raw_command: rawText,
+        };
       }
 
       return {
         action: 'play_youtube',
         platform: 'youtube',
-        parameters: { query: query || 'Trending Music' },
-        response_text: `Playing ${query || 'video'} on YouTube.`,
+        parameters: { query },
+        response_text: `Playing ${query} on YouTube.`,
         raw_command: rawText,
       };
     }

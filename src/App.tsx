@@ -24,7 +24,7 @@ export const App: React.FC = () => {
 
   // Command Execution Handler (Seamless playback & task execution)
   const executeCommand = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const clean = text.trim();
       if (!clean) return;
 
@@ -33,24 +33,33 @@ export const App: React.FC = () => {
       // 1. Intent classification (Multilingual NLP)
       const intent: IntentResult = defaultIntentEngine.parseIntent(clean);
 
-      // 2. Perform automation execution
-      const execResult = defaultAutomationController.execute(intent.action, intent.platform, intent.parameters);
+      // 2. Perform automation execution (awaits real-time video resolution for ANY title)
+      const execResult = await defaultAutomationController.execute(intent.action, intent.platform, intent.parameters);
 
       // 3. If video or music playback, activate the in-page player!
       if (intent.action === 'play_youtube' || intent.action === 'open_youtube') {
-        const vidId = execResult.videoId || defaultAutomationController.getYouTubeVideoId(execResult.query || '') || 'J3yW_rW8xCY';
+        const vidId = execResult.videoId || 'GX9x62kFsVU';
         setActiveVideo({
           videoId: vidId,
-          query: execResult.query || 'Music Video',
+          query: execResult.query || clean,
           url: execResult.url_opened,
         });
+        setActiveSpotify(null);
       } else if (intent.action === 'open_spotify') {
-        const trkId = execResult.videoId || defaultAutomationController.getSpotifyTrackId(execResult.query || '') || '0aym2LBJBIm974knNZ5j9S';
+        const trkId = defaultAutomationController.getSpotifyTrackId(execResult.query || '');
         setActiveSpotify({
-          query: execResult.query || 'Music',
+          query: execResult.query || clean,
           url: execResult.url_opened,
-          trackId: trkId,
+          trackId: trkId || undefined,
         });
+        // Also provide instant playable stream if videoId was resolved!
+        if (execResult.videoId) {
+          setActiveVideo({
+            videoId: execResult.videoId,
+            query: execResult.query || clean,
+            url: `https://www.youtube.com/watch?v=${execResult.videoId}&autoplay=1`,
+          });
+        }
       }
 
       // 4. Status Badge Feedback
@@ -286,18 +295,20 @@ export const App: React.FC = () => {
                 </button>
               </div>
             </div>
-            {/* Real Playable Spotify Embed Widget */}
-            <div className="spotify-frame-wrapper">
-              <iframe
-                src={`https://open.spotify.com/embed/track/${activeSpotify.trackId || '0aym2LBJBIm974knNZ5j9S'}?utm_source=generator&theme=0`}
-                width="100%"
-                height="152"
-                frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                title="Spotify Track Player"
-              />
-            </div>
+            {/* Real Playable Spotify Embed Widget if trackId known */}
+            {activeSpotify.trackId && (
+              <div className="spotify-frame-wrapper">
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${activeSpotify.trackId}?utm_source=generator&theme=0`}
+                  width="100%"
+                  height="152"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  title="Spotify Track Player"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -321,7 +332,7 @@ export const App: React.FC = () => {
             <input
               type="text"
               className="omnibar-input"
-              placeholder="Ask or command anything... (e.g. 'spotify pe chaleya play kr', 'video open kro')"
+              placeholder="Ask or command anything... (e.g. 'tauba tauba play kro', 'kuch bhi play krde', 'video title carryminati')"
               value={commandInput}
               onChange={(e) => setCommandInput(e.target.value)}
               autoFocus
@@ -346,14 +357,17 @@ export const App: React.FC = () => {
 
         {/* Natural Example Suggestion Chips */}
         <div className="suggestion-row">
-          <div className="suggestion-chip" onClick={() => handleChipClick('video open kro')}>
-            ▶ Video Open Kro
+          <div className="suggestion-chip" onClick={() => handleChipClick('tauba tauba play kro')}>
+            ▶ Tauba Tauba Play Kro
           </div>
-          <div className="suggestion-chip" onClick={() => handleChipClick('spotify pe chaleya play kr')}>
-            🎵 Spotify Pe Chaleya Play Kr
+          <div className="suggestion-chip" onClick={() => handleChipClick('gehra hua sunao')}>
+            🎵 Gehra Hua Sunao
           </div>
-          <div className="suggestion-chip" onClick={() => handleChipClick('youtube pe kesariya play kro')}>
-            YouTube Pe Kesariya
+          <div className="suggestion-chip" onClick={() => handleChipClick('kuch bhi play krde')}>
+            🎲 Kuch Bhi Play Krde
+          </div>
+          <div className="suggestion-chip" onClick={() => handleChipClick('video title carryminati roast')}>
+            🎬 Video Title CarryMinati
           </div>
           <div className="suggestion-chip" onClick={() => handleChipClick('open gmail')}>
             Open Gmail
