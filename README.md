@@ -1,50 +1,97 @@
-# 🚀 VoxPilot AI - Autonomous Multilingual Voice Agent (React Edition)
+# 🤖 VoxPilot AI - Autonomous Multilingual Voice & Automation Platform
 
-A Hybrid Voice Automation Agent designed to understand **Hindi, English, and Hinglish** commands and execute real-world tasks across multiple platforms (YouTube, Gmail, WhatsApp Web, Google Search, and native desktop apps), now built as a high-performance **React + TypeScript + Vite** application.
+> A next-generation, high-performance **Continuous Voice Automation Platform** designed to understand **Hindi, English, and Hinglish** commands and execute real-world tasks across multiple platforms (YouTube, Spotify, Gmail, WhatsApp Web, Google Search, and Desktop Tools).
 
----
-
-## 🌟 Key Capabilities
-
-- **Hindi + English + Hinglish Voice Recognition**: Natural phonetics and accent processing using the Web Speech API (e.g., *"bhai youtube pe chikni chameli chalao"*).
-- **Deep YouTube Automation**: Resolves exact top video IDs with interactive in-app player and external playback links.
-- **Gmail Automation**: Opens direct drafts with pre-filled recipient and subject.
-- **WhatsApp Web Automation**: Composes direct WhatsApp messages to phone numbers or opens WhatsApp Web.
-- **Interactive Desktop Control & Simulators**: Interactive Calculator, Notepad with instant `.txt` file export, and system launcher dispatches.
-- **Client-Side Zero-Latency Hybrid NLP Engine**:
-  - High-accuracy Hinglish Natural Language Processing (zero API keys or heavy GPU required).
-  - Handles transliterated Hindi, Devanagari script, and colloquial Indian phrases.
-- **Futuristic Cyber-Glassmorphism UI**:
-  - Live audio-reactive quantum orb visualizer powered by Web Audio API and HTML5 Canvas.
-  - Real-time speech transcription badge.
-  - Interactive Action Console logging intent extraction and browser dispatch in real time.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/React-18.3.1-61dafb.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178c6.svg)
+![Vite](https://img.shields.io/badge/Vite-6.1.0-646cff.svg)
 
 ---
 
-## 🎙️ Example Voice Commands
+## 🌟 Key Features
 
-| Category | Hinglish / Hindi Command | English Command | What it does |
-|---|---|---|---|
-| **YouTube** | *"YouTube pe chikni chameli chalao"* | *"Open YouTube and play Chikni Chameli"* | Finds and autoplays "Chikni Chameli" on YouTube |
-| **YouTube** | *"Arijit Singh ke gaane sunao"* | *"Play Arijit Singh songs on YouTube"* | Plays Arijit Singh hits on YouTube |
-| **Gmail** | *"Gmail kholo aur Rohit ko email bhejo"* | *"Open Gmail and compose email to Rohit"* | Opens Gmail compose window with draft ready |
-| **WhatsApp** | *"WhatsApp Web open karo"* | *"Open WhatsApp Web"* | Opens WhatsApp Web |
-| **Desktop** | *"Calculator kholo"* | *"Open Calculator"* | Launches Windows Calculator simulator |
-| **Desktop** | *"Notepad kholo"* | *"Open Notepad"* | Launches Notepad with file saving |
-| **Google** | *"Google pe weather search karo"* | *"Search weather on Google"* | Searches weather on Google |
+1. **Continuous Voice Pipeline (Command After Command)**
+   - Listens continuously without stopping after a single command.
+   - Execute task 1 ➔ Task runs ➔ Mic automatically stays active for task 2 ➔ Task runs ➔ Never interrupts your workflow.
+
+2. **Animated AI Robot Companion**
+   - Interactive, floating 2D Canvas companion with realistic hover physics.
+   - Expressive LED Visor Eyes with natural blinking and real-time audio spectrum mouth waves.
+   - Dynamic reactive states: *Idle, Listening, Processing, Executing*.
+
+3. **Direct Media Playback Engine (YouTube & Spotify)**
+   - **YouTube Direct Watch Autoplay**: Bypasses search result pages; opens direct `/watch?v={videoId}&autoplay=1` video streams with instant buffering.
+   - **In-Page Floating Video Dock**: Watch the video directly on the web app with autoplay!
+   - **Integrated Spotify Web Player**: Embeds Spotify track players with instant play actions.
+
+4. **Multi-Platform Automation Controller**
+   - **Gmail**: Directly opens Gmail compose drafts with recipient and subject pre-filled.
+   - **WhatsApp Web**: Opens WhatsApp chats with pre-filled text or recipient phone numbers.
+   - **Desktop System Tools**: Native launcher integration for Calculator, Notepad, File Explorer, Terminal.
+   - **Google Knowledge & Maps**: Direct localized map navigation and search queries.
+
+5. **Sleek Minimalist Nature & AI UI**
+   - Serene emerald twilight ambiance (zero harsh neon).
+   - Google / Perplexity-style floating omnibar with dual Voice & Text input.
 
 ---
 
-## 🛠️ Development
+## 🛠️ Complete Technology Stack
 
-Run the dev server:
+| Layer | Technology | Usage & Purpose |
+|---|---|---|
+| **Core Framework** | **React 18.3.1** | Component lifecycle, responsive state hooks, UI orchestration |
+| **Language & Typings** | **TypeScript 5.7.3** | Strict type safety, clean data contracts, compile-time validation |
+| **Build Tool & Bundler** | **Vite 6.1.0** | Ultra-fast HMR (Hot Module Replacement) and optimized production rollup |
+| **Speech Recognition (STT)** | **Web Speech API (`SpeechRecognition`)** | Real-time multilingual voice transcription supporting `en-IN` & `hi-IN` phonetics |
+| **Speech Synthesis (TTS)** | **SpeechSynthesis API (`SpeechSynthesisUtterance`)** | Natural voice confirmation responses with seamless listening loop resumption |
+| **Audio Processing** | **Web Audio API (`AudioContext`, `AnalyserNode`)** | Real-time Fast Fourier Transform (FFT) frequency spectrum extraction from microphone |
+| **Computer Graphics** | **HTML5 2D Canvas API** | Procedural vector rendering of the AI Bot chassis, visor reflection, and expressive LED animations |
+| **Styling & Design System** | **Vanilla CSS3** | Custom design tokens, glassmorphism filters, responsive layouts, micro-animations |
+| **Typography** | **Google Fonts (`Inter`, `Plus Jakarta Sans`)** | Modern executive SaaS typography |
+| **Media APIs** | **YouTube IFrame API & Spotify Embed API** | Direct in-page media playback widgets and external deep-linking |
+| **Icons & Assets** | **Custom Vector SVG & Lucide Icons** | Pixel-perfect vector graphics without external asset lag |
 
+---
+
+## 🎙️ Natural Voice & Text Commands
+
+| Platform | Command Examples | Action Performed |
+|---|---|---|
+| **YouTube** | `"video open kro"` / `"play chikni chameli"` | Directly opens video watch stream & docks in-page player |
+| **Spotify** | `"spotify pe chaleya play kr"` / `"play kesariya on spotify"` | Opens Spotify track & renders interactive Spotify player |
+| **Gmail** | `"open gmail"` / `"gmail pe email compose karo to rohit"` | Opens pre-filled Gmail draft |
+| **WhatsApp** | `"open whatsapp web"` | Launches WhatsApp Web |
+| **Desktop** | `"open calculator"` / `"calculator kholo"` | Launches desktop calculator |
+| **Search** | `"search latest AI news on google"` | Dispatches Google knowledge search |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm / pnpm / yarn
+
+### Installation
 ```bash
+# Clone the repository
+git clone https://github.com/rajat414-codex/voxpilot-ai.git
+
+# Navigate to project folder
+cd voxpilot-ai
+
+# Install dependencies
+npm install
+
+# Start local development server
 npm run dev
 ```
 
-Build for production:
+The app will be live at `http://localhost:3000/`.
 
-```bash
-npm run build
-```
+---
+
+## 📄 License
+MIT License &copy; 2026 Rajat Kamal. All rights reserved.
