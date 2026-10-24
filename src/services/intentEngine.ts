@@ -15,7 +15,7 @@ export class IntentEngine {
     const rawText = userText.trim();
     const lowerText = rawText.toLowerCase();
 
-    // Clean common Hindi filler words
+    // Clean common conversational fillers
     const cleanText = lowerText
       .replace(/^(bhai|are yaar|hey vox|vox|alexa|siri|jarvis|sun|suno|kripya|please)\s+/i, '')
       .trim();
@@ -29,16 +29,13 @@ export class IntentEngine {
       const isYouTubeSpecific = cleanText.includes('youtube') || cleanText.split(/\s+/).includes('yt');
 
       let query = cleanText;
-      // Strip platform keywords
       query = query.replace(/\b(on\s+youtube|youtube\s+pe|youtube\s+par|youtube\s+me|youtube)\b/gi, '');
 
-      // Strip verbs
       for (const verb of [...this.playVerbs, ...this.openVerbs]) {
         const regex = new RegExp(`\\b${verb}\\b`, 'gi');
         query = query.replace(regex, '');
       }
 
-      // Strip prepositions & fillers
       query = query.replace(/\b(and|aur|ke|ka|ki|gaane|song|video|music|chahiye|pls|please|karo)\b/gi, '');
       query = query.replace(/\s+/g, ' ').trim();
 
@@ -47,7 +44,7 @@ export class IntentEngine {
           action: 'open_youtube',
           platform: 'youtube',
           parameters: { query: '' },
-          response_text: 'YouTube khol raha hoon...',
+          response_text: 'Opening YouTube.',
           raw_command: rawText,
         };
       } else if (query) {
@@ -55,7 +52,7 @@ export class IntentEngine {
           action: 'play_youtube',
           platform: 'youtube',
           parameters: { query },
-          response_text: `YouTube par '${query}' chala raha hoon! Maza lijiye...`,
+          response_text: `Playing ${query} on YouTube.`,
           raw_command: rawText,
         };
       }
@@ -78,7 +75,7 @@ export class IntentEngine {
           action: 'compose_gmail',
           platform: 'gmail',
           parameters: { to: recipient, subject, body: '' },
-          response_text: `Gmail compose khol raha hoon${recipient ? ` ${recipient} ke liye...` : '...'}`,
+          response_text: `Opening Gmail draft${recipient ? ` for ${recipient}` : ''}.`,
           raw_command: rawText,
         };
       } else {
@@ -86,7 +83,7 @@ export class IntentEngine {
           action: 'open_gmail',
           platform: 'gmail',
           parameters: {},
-          response_text: 'Gmail inbox khol raha hoon...',
+          response_text: 'Opening Gmail inbox.',
           raw_command: rawText,
         };
       }
@@ -103,22 +100,19 @@ export class IntentEngine {
         action: 'open_whatsapp',
         platform: 'whatsapp',
         parameters: { phone, message },
-        response_text: 'WhatsApp Web open kar raha hoon...',
+        response_text: 'Opening WhatsApp Web.',
         raw_command: rawText,
       };
     }
 
-    // 4. GOOGLE SEARCH & KNOWLEDGE
-    if (['google', 'search', 'dhoondo', 'dhoondho', 'khojo', 'kaisa hai', 'weather', 'mausam'].some((w) => cleanText.includes(w))) {
-      let query = cleanText;
-      query = query.replace(/\b(on\s+google|google\s+pe|google\s+par|google|search|dhoondho|dhoondo|khojo|batao|karo)\b/gi, '');
-      query = query.replace(/\s+/g, ' ').trim();
-
+    // 4. SPOTIFY
+    if (cleanText.includes('spotify')) {
+      let query = cleanText.replace(/\b(on\s+spotify|spotify\s+pe|spotify|play|chalao|bajao)\b/gi, '').trim();
       return {
-        action: 'google_search',
-        platform: 'google',
-        parameters: { query: query || 'Latest News' },
-        response_text: `Google par '${query || 'Latest News'}' search kar raha hoon...`,
+        action: 'open_spotify',
+        platform: 'spotify',
+        parameters: { query },
+        response_text: `Opening Spotify for ${query || 'music'}.`,
         raw_command: rawText,
       };
     }
@@ -130,7 +124,7 @@ export class IntentEngine {
         action: 'open_maps',
         platform: 'google_maps',
         parameters: { location: query },
-        response_text: `Google Maps par '${query}' search kar raha hoon...`,
+        response_text: `Opening Google Maps for ${query || 'location'}.`,
         raw_command: rawText,
       };
     }
@@ -138,12 +132,12 @@ export class IntentEngine {
     // 6. SYSTEM DESKTOP APPS
     const appMap: Record<string, string[]> = {
       calculator: ['calculator', 'calc', 'hisaab'],
-      notepad: ['notepad', 'text editor', 'likhne wala'],
+      notepad: ['notepad', 'text editor', 'notes'],
       explorer: ['file manager', 'explorer', 'my computer', 'files', 'folder'],
       cmd: ['terminal', 'command prompt', 'cmd', 'powershell'],
       chrome: ['chrome', 'google chrome'],
       edge: ['edge', 'microsoft edge'],
-      settings: ['settings', 'control panel', 'setting'],
+      settings: ['settings', 'control panel'],
     };
 
     for (const [appId, triggers] of Object.entries(appMap)) {
@@ -152,30 +146,47 @@ export class IntentEngine {
           action: 'launch_app',
           platform: 'desktop',
           parameters: { app: appId },
-          response_text: `Aapke PC par ${appId.charAt(0).toUpperCase() + appId.slice(1)} open kar raha hoon...`,
+          response_text: `Launching ${appId.charAt(0).toUpperCase() + appId.slice(1)}.`,
           raw_command: rawText,
         };
       }
     }
 
-    // 7. SPOTIFY / MUSIC
-    if (cleanText.includes('spotify')) {
-      const query = cleanText.replace(/\b(on\s+spotify|spotify\s+pe|spotify|play|chalao|bajao)\b/gi, '').trim();
-      return {
-        action: 'open_spotify',
-        platform: 'spotify',
-        parameters: { query },
-        response_text: `Spotify par '${query}' play kar raha hoon...`,
-        raw_command: rawText,
-      };
+    // 7. COMMON WEBSITES (GitHub, Twitter, Reddit, Netflix, etc.)
+    const webServices: Record<string, string> = {
+      github: 'https://github.com',
+      twitter: 'https://twitter.com',
+      x: 'https://x.com',
+      reddit: 'https://reddit.com',
+      netflix: 'https://netflix.com',
+      amazon: 'https://amazon.com',
+      linkedin: 'https://linkedin.com',
+      instagram: 'https://instagram.com',
+      chatgpt: 'https://chatgpt.com',
+    };
+
+    for (const [service, url] of Object.entries(webServices)) {
+      if (cleanText.includes(service)) {
+        return {
+          action: 'open_url',
+          platform: service,
+          parameters: { query: url },
+          response_text: `Opening ${service.charAt(0).toUpperCase() + service.slice(1)}.`,
+          raw_command: rawText,
+        };
+      }
     }
 
-    // 8. DEFAULT FALLBACK -> GOOGLE SEARCH
+    // 8. GOOGLE SEARCH / GENERAL QUERY FALLBACK
+    let search = cleanText
+      .replace(/\b(on\s+google|google\s+pe|google\s+par|google|search|dhoondho|dhoondo|khojo|batao|karo|what is|who is)\b/gi, '')
+      .trim();
+
     return {
       action: 'google_search',
       platform: 'google',
-      parameters: { query: cleanText },
-      response_text: `Aapke sawaal '${cleanText}' ke liye search kar raha hoon...`,
+      parameters: { query: search || cleanText },
+      response_text: `Searching Google for ${search || cleanText}.`,
       raw_command: rawText,
     };
   }
