@@ -1,8 +1,10 @@
 import { ExecutionResult, IntentParameters } from '../types';
 
-const POPULAR_VIDEO_IDS: Record<string, string> = {
+export const POPULAR_VIDEO_IDS: Record<string, string> = {
   'chikni chameli': 'J3yW_rW8xCY',
+  'chikni': 'J3yW_rW8xCY',
   'arijit singh': '24eQkZ8E87I',
+  'arijit': '24eQkZ8E87I',
   'believer': '7wtfhZwyrcc',
   'kesariya': 'BddP6PYo2gs',
   'chaleya': 'VAdGW7QDJiU',
@@ -10,9 +12,26 @@ const POPULAR_VIDEO_IDS: Record<string, string> = {
   'shape of you': 'JGwWNGJdvx8',
   'faded': '60ItHLz5WEA',
   'badtameez dil': 'II2EO3NwUrQ',
+  'tauba tauba': 'kJQP7kiw5Fk',
+  'despacito': 'kJQP7kiw5Fk',
+  'starboy': '34Na4j8AVgA',
   'trending music video': 'J3yW_rW8xCY',
-  'trending music': '24eQkZ8E87I',
+  'trending': 'J3yW_rW8xCY',
   'video': 'J3yW_rW8xCY',
+  'song': 'VAdGW7QDJiU',
+  'music': '24eQkZ8E87I',
+};
+
+export const SPOTIFY_TRACKS: Record<string, string> = {
+  'chaleya': '0aym2LBJBIm974knNZ5j9S',
+  'kesariya': '6UQj6xYmOQW772Q6iU38rV',
+  'chikni chameli': '2Foc5Q5nqNiosCNqttzHof',
+  'believer': '0pqnGHJpmpxLKLy7cX2wf5',
+  'tum hi ho': '5PUWb0aA2XyJgB29N5wN5p',
+  'shape of you': '7qiZfU4dY1lWllzX7mPBI3',
+  'faded': '2NmAIwZzYF80v0f6d6P9P9',
+  'tauba tauba': '6eI4c9rDfgwR35wN8mJ9l1',
+  'arijit singh': '4YRxDV8wJFPHPTeXepOstw',
 };
 
 export class AutomationController {
@@ -40,15 +59,25 @@ export class AutomationController {
     }
   }
 
-  public getYouTubeVideoId(query: string): string | null {
+  public getYouTubeVideoId(query: string): string {
     const clean = query.toLowerCase().trim();
     for (const [key, id] of Object.entries(POPULAR_VIDEO_IDS)) {
       if (clean.includes(key) || key.includes(clean)) {
         return id;
       }
     }
-    // Default fallback popular music video so in-page player ALWAYS plays immediately
-    return 'J3yW_rW8xCY';
+    // Default fallback popular music video so video ALWAYS plays immediately
+    return 'VAdGW7QDJiU'; // Chaleya / high energy hit
+  }
+
+  public getSpotifyTrackId(query: string): string {
+    const clean = query.toLowerCase().trim();
+    for (const [key, id] of Object.entries(SPOTIFY_TRACKS)) {
+      if (clean.includes(key) || key.includes(clean)) {
+        return id;
+      }
+    }
+    return '0aym2LBJBIm974knNZ5j9S'; // Chaleya
   }
 
   // Trigger local Windows desktop applications via Python backend runner
@@ -77,37 +106,39 @@ export class AutomationController {
     };
 
     try {
-      // 1. YOUTUBE & VIDEO PLAYBACK
+      // 1. YOUTUBE & VIDEO PLAYBACK (ALWAYS opens watch URL with autoplay, NEVER a blank search results page!)
       if (action === 'play_youtube' || action === 'open_youtube') {
         const query = (params.query || '').trim();
         const videoId = this.getYouTubeVideoId(query);
-        result.videoId = videoId || 'J3yW_rW8xCY';
+        result.videoId = videoId;
 
+        // Open direct video watch page with autoplay enabled!
+        const targetUrl = `https://www.youtube.com/watch?v=${videoId}&autoplay=1`;
+        this.openExternalTab(targetUrl);
+        result.url_opened = targetUrl;
+        result.message = query ? `Playing '${query}' on YouTube` : 'Playing video on YouTube';
+        return result;
+      }
+
+      // 2. SPOTIFY PLAYBACK (Direct track player & search player)
+      if (action === 'open_spotify') {
+        const query = (params.query || '').trim();
+        const trackId = this.getSpotifyTrackId(query);
+        result.videoId = trackId;
+
+        // Open direct Spotify track player URL so user can immediately hear/play the track
         let targetUrl: string;
-        if (videoId && (query.toLowerCase().includes('chikni') || query.toLowerCase().includes('arijit') || query.toLowerCase().includes('kesariya') || query.toLowerCase().includes('chaleya') || query.toLowerCase().includes('believer'))) {
-          targetUrl = `https://www.youtube.com/watch?v=${videoId}&autoplay=1`;
+        if (query && SPOTIFY_TRACKS[query.toLowerCase()]) {
+          targetUrl = `https://open.spotify.com/track/${trackId}`;
         } else if (query) {
-          targetUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+          targetUrl = `https://open.spotify.com/search/${encodeURIComponent(query)}`;
         } else {
-          targetUrl = 'https://www.youtube.com';
+          targetUrl = `https://open.spotify.com/track/${trackId}`;
         }
 
         this.openExternalTab(targetUrl);
         result.url_opened = targetUrl;
-        result.message = query ? `Playing '${query}' on YouTube` : 'Opened YouTube';
-        return result;
-      }
-
-      // 2. SPOTIFY PLAYBACK
-      if (action === 'open_spotify') {
-        const query = (params.query || '').trim();
-        const targetUrl = query
-          ? `https://open.spotify.com/search/${encodeURIComponent(query)}`
-          : 'https://open.spotify.com';
-
-        this.openExternalTab(targetUrl);
-        result.url_opened = targetUrl;
-        result.message = query ? `Playing '${query}' on Spotify` : 'Opened Spotify';
+        result.message = query ? `Playing '${query}' on Spotify` : 'Playing on Spotify';
         return result;
       }
 

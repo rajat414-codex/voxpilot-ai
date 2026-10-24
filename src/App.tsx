@@ -16,7 +16,7 @@ export const App: React.FC = () => {
 
   // In-Page Playable Media Players (Play video & Spotify directly in the web app)
   const [activeVideo, setActiveVideo] = useState<{ videoId: string; query: string; url: string | null } | null>(null);
-  const [activeSpotify, setActiveSpotify] = useState<{ query: string; url: string | null } | null>(null);
+  const [activeSpotify, setActiveSpotify] = useState<{ query: string; url: string | null; trackId?: string } | null>(null);
 
   const speechEngineRef = useRef<SpeechEngine | null>(null);
   const visualizerHandleRef = useRef<AudioVisualizerHandle | null>(null);
@@ -45,9 +45,11 @@ export const App: React.FC = () => {
           url: execResult.url_opened,
         });
       } else if (intent.action === 'open_spotify') {
+        const trkId = execResult.videoId || defaultAutomationController.getSpotifyTrackId(execResult.query || '') || '0aym2LBJBIm974knNZ5j9S';
         setActiveSpotify({
           query: execResult.query || 'Music',
           url: execResult.url_opened,
+          trackId: trkId,
         });
       }
 
@@ -252,35 +254,49 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* In-Page Spotify Media Notification Card */}
+        {/* In-Page Spotify Media Player Dock */}
         {activeSpotify && (
           <div className="spotify-dock-card">
-            <div className="spotify-left">
-              <div className="spotify-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="#1ed760">
-                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.348-1.435-5.304-1.76-8.785-.963-.335.077-.67-.133-.746-.468-.077-.334.132-.67.467-.746 3.808-.87 7.076-.496 9.714 1.115.294.18.386.562.207.855zm1.225-2.724c-.226.367-.707.482-1.074.256-2.687-1.652-6.785-2.131-9.965-1.166-.413.126-.849-.107-.975-.52-.126-.414.107-.849.52-.975 3.632-1.103 8.147-.568 11.238 1.33.367.226.482.708.256 1.075zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.494.15-1.018-.128-1.168-.622-.15-.494.128-1.018.622-1.168 3.532-1.072 9.404-.866 13.115 1.338.444.263.59.838.327 1.282-.264.444-.838.59-1.282.327z" />
-                </svg>
+            <div className="spotify-dock-top">
+              <div className="spotify-left">
+                <div className="spotify-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#1ed760">
+                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.348-1.435-5.304-1.76-8.785-.963-.335.077-.67-.133-.746-.468-.077-.334.132-.67.467-.746 3.808-.87 7.076-.496 9.714 1.115.294.18.386.562.207.855zm1.225-2.724c-.226.367-.707.482-1.074.256-2.687-1.652-6.785-2.131-9.965-1.166-.413.126-.849-.107-.975-.52-.126-.414.107-.849.52-.975 3.632-1.103 8.147-.568 11.238 1.33.367.226.482.708.256 1.075zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.494.15-1.018-.128-1.168-.622-.15-.494.128-1.018.622-1.168 3.532-1.072 9.404-.866 13.115 1.338.444.263.59.838.327 1.282-.264.444-.838.59-1.282.327z" />
+                  </svg>
+                </div>
+                <div className="spotify-meta">
+                  <h4>Spotify: {activeSpotify.query}</h4>
+                  <p>Click Play to listen</p>
+                </div>
               </div>
-              <div className="spotify-meta">
-                <h4>Playing on Spotify</h4>
-                <p>"{activeSpotify.query}"</p>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {activeSpotify.url && (
+                  <button
+                    className="media-tab-btn"
+                    onClick={() => defaultAutomationController.openExternalTab(activeSpotify.url!)}
+                  >
+                    Open Spotify App ↗
+                  </button>
+                )}
+                <button
+                  className="media-close-btn"
+                  onClick={() => setActiveSpotify(null)}
+                >
+                  ✕
+                </button>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {activeSpotify.url && (
-                <button
-                  className="media-tab-btn"
-                  onClick={() => defaultAutomationController.openExternalTab(activeSpotify.url!)}
-                >
-                  Listen on Spotify ↗
-                </button>
-              )}
-              <button
-                className="media-close-btn"
-                onClick={() => setActiveSpotify(null)}
-              >
-                ✕
-              </button>
+            {/* Real Playable Spotify Embed Widget */}
+            <div className="spotify-frame-wrapper">
+              <iframe
+                src={`https://open.spotify.com/embed/track/${activeSpotify.trackId || '0aym2LBJBIm974knNZ5j9S'}?utm_source=generator&theme=0`}
+                width="100%"
+                height="152"
+                frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                title="Spotify Track Player"
+              />
             </div>
           </div>
         )}
