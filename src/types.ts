@@ -55,7 +55,7 @@ export interface TerminalLog {
   id: string;
   timestamp: string;
   message: string;
-  type: 'cyan' | 'green' | 'purple' | 'yellow' | 'normal';
+  type: 'cyan' | 'green' | 'purple' | 'yellow' | 'normal' | 'info' | 'success' | 'action' | 'warn';
 }
 
 export interface BackendStatus {

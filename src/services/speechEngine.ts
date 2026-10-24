@@ -5,7 +5,6 @@ export interface SpeechTranscriptData {
   isFinal: boolean;
 }
 
-// Extend Window interface for Web Speech API types
 interface IWindow extends Window {
   webkitSpeechRecognition?: any;
   SpeechRecognition?: any;
@@ -14,19 +13,29 @@ interface IWindow extends Window {
 export class SpeechEngine {
   private onTranscript: (data: SpeechTranscriptData) => void;
   private onStateChange: (state: VoiceState) => void;
+  private onCommandReady?: (commandText: string) => void;
+
   private recognition: any = null;
   public isListening = false;
+  public shouldKeepListening = false;
+  public isSpeaking = false;
   public currentLanguage: SupportedLanguage = 'en-IN';
   private synth: SpeechSynthesis | null = null;
   private preferredVoice: SpeechSynthesisVoice | null = null;
   public isSupported = false;
 
+  private restartTimeout: any = null;
+  private lastExecutedText = '';
+  private lastExecutedTime = 0;
+
   constructor(
     onTranscriptCallback: (data: SpeechTranscriptData) => void,
-    onStateChangeCallback: (state: VoiceState) => void
+    onStateChangeCallback: (state: VoiceState) => void,
+    onCommandReadyCallback?: (commandText: string) => void
   ) {
     this.onTranscript = onTranscriptCallback;
     this.onStateChange = onStateChangeCallback;
+    this.onCommandReady = onCommandReadyCallback;
 
     if (typeof window !== 'undefined') {
       this.synth = window.speechSynthesis || null;
@@ -48,8 +57,9 @@ export class SpeechEngine {
     this.isSupported = true;
     try {
       this.recognition = new SpeechRec();
-      this.recognition.continuous = false;
+      this.recognition.continuous = true; // Continuous listening: never stops!
       this.recognition.interimResults = true;
+      this.recognition.maxAlternatives = 1;
       this.recognition.lang = this.currentLanguage;
 
       this.recognition.onstart = () => {
@@ -58,6 +68,9 @@ export class SpeechEngine {
       };
 
       this.recognition.onresult = (event: any) => {
+        // Prevent microphone picking up the AI's own synthesized voice
+        if (this.isSpeaking) return;
+
         let interimTranscript = '';
         let finalTranscript = '';
 
@@ -70,36 +83,77 @@ export class SpeechEngine {
           }
         }
 
-        const text = (finalTranscript || interimTranscript).trim();
-        this.onTranscript({
-          text,
-          isFinal: Boolean(finalTranscript),
-        });
+        const activeText = (finalTranscript || interimTranscript).trim();
+        if (activeText) {
+          this.onTranscript({
+            text: activeText,
+            isFinal: Boolean(finalTranscript),
+          });
+        }
+
+        // When a distinct final command is recognized, trigger callback
+        if (finalTranscript && finalTranscript.trim().length > 1) {
+          const now = Date.now();
+          const clean = finalTranscript.trim().toLowerCase();
+
+          // Debounce repeated triggers within 2.5 seconds
+          if (clean !== this.lastExecutedText || now - this.lastExecutedTime > 2500) {
+            this.lastExecutedText = clean;
+            this.lastExecutedTime = now;
+            if (this.onCommandReady) {
+              this.onCommandReady(finalTranscript.trim());
+            }
+          }
+        }
       };
 
       this.recognition.onerror = (event: any) => {
-        console.warn('[Speech] Recognition error:', event.error);
-        this.isListening = false;
-        this.onStateChange('idle');
+        // Ignore silent expected errors like 'no-speech'
+        if (event.error !== 'no-speech') {
+          console.warn('[Speech] Recognition error:', event.error);
+        }
       };
 
       this.recognition.onend = () => {
         this.isListening = false;
-        this.onStateChange('idle');
+        // Auto-restart loop if user hasn't explicitly stopped continuous mode
+        if (this.shouldKeepListening && !this.isSpeaking) {
+          this.scheduleRestart(250);
+        } else if (!this.shouldKeepListening) {
+          this.onStateChange('idle');
+        }
       };
     } catch (e) {
       console.warn('[Speech] Initialization failed:', e);
     }
   }
 
+  private scheduleRestart(delay = 250): void {
+    if (this.restartTimeout) clearTimeout(this.restartTimeout);
+    this.restartTimeout = setTimeout(() => {
+      if (this.shouldKeepListening && !this.isListening && !this.isSpeaking) {
+        try {
+          this.recognition?.start();
+        } catch {
+          // In case already started
+        }
+      }
+    }, delay);
+  }
+
   public setLanguage(langCode: SupportedLanguage): void {
     this.currentLanguage = langCode;
     if (this.recognition) {
       this.recognition.lang = langCode;
+      if (this.isListening) {
+        this.stopListening();
+        setTimeout(() => this.startListening(), 350);
+      }
     }
   }
 
   public startListening(): void {
+    this.shouldKeepListening = true;
     if (!this.recognition) {
       this.initRecognition();
     }
@@ -107,25 +161,32 @@ export class SpeechEngine {
 
     try {
       this.recognition.start();
-    } catch (e) {
-      console.log('[Speech] startListening exception:', e);
+    } catch {
+      // Already running
     }
   }
 
   public stopListening(): void {
+    this.shouldKeepListening = false;
+    if (this.restartTimeout) clearTimeout(this.restartTimeout);
     if (!this.recognition) return;
+
     try {
       this.recognition.stop();
-    } catch (e) {
-      console.log('[Speech] stopListening exception:', e);
+    } catch {
+      // Ignore
     }
+    this.isListening = false;
+    this.onStateChange('idle');
   }
 
-  public toggleListening(): void {
-    if (this.isListening) {
+  public toggleListening(): boolean {
+    if (this.shouldKeepListening) {
       this.stopListening();
+      return false;
     } else {
       this.startListening();
+      return true;
     }
   }
 
@@ -148,34 +209,40 @@ export class SpeechEngine {
     }
   }
 
-  public speak(text: string): void {
-    if (!this.synth || !text) return;
-
-    try {
-      this.synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      if (this.preferredVoice) {
-        utterance.voice = this.preferredVoice;
-      }
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-
-      utterance.onstart = () => {
-        this.onStateChange('speaking');
-      };
-
-      utterance.onend = () => {
-        this.onStateChange('idle');
-      };
-
-      utterance.onerror = () => {
-        this.onStateChange('idle');
-      };
-
-      this.synth.speak(utterance);
-    } catch (err) {
-      console.warn('[Speech] Synth error:', err);
-      this.onStateChange('idle');
+  public speak(text: string, onEnd?: () => void): void {
+    if (!this.synth || !text) {
+      if (onEnd) onEnd();
+      return;
     }
+
+    this.isSpeaking = true;
+    this.synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (this.preferredVoice) {
+      utterance.voice = this.preferredVoice;
+    }
+    utterance.rate = 1.05;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => {
+      this.onStateChange('speaking');
+    };
+
+    const finishSpeaking = () => {
+      this.isSpeaking = false;
+      if (this.shouldKeepListening) {
+        this.onStateChange('listening');
+        this.scheduleRestart(300);
+      } else {
+        this.onStateChange('idle');
+      }
+      if (onEnd) onEnd();
+    };
+
+    utterance.onend = finishSpeaking;
+    utterance.onerror = finishSpeaking;
+
+    this.synth.speak(utterance);
   }
 }
