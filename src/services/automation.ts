@@ -189,7 +189,13 @@ export class AutomationController {
         const targetUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${to}&su=${su}&body=${body}`;
         this.openExternalTab(targetUrl);
         result.url_opened = targetUrl;
-        result.message = 'Opened Gmail Compose';
+        result.message = `Composed email for ${params.to || 'recipient'}`;
+        result.emailData = {
+          to: params.to || '',
+          from: params.from,
+          subject: params.subject || '',
+          body: params.body || '',
+        };
         return result;
       }
 

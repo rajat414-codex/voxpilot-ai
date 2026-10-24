@@ -1,4 +1,5 @@
 import { IntentResult } from '../types';
+import { defaultEmailEngine } from './emailEngine';
 
 export class IntentEngine {
   private playVerbs = [
@@ -137,27 +138,19 @@ export class IntentEngine {
       };
     }
 
-    // 3. GMAIL COMMANDS
-    if (['gmail', 'email', 'mail', 'inbox'].some((w) => cleanText.includes(w))) {
-      const isCompose = ['compose', 'send', 'bhejo', 'likho', 'draft', 'new mail', 'naya mail'].some((w) =>
-        cleanText.includes(w)
-      );
+    // 3. GMAIL & AI EMAIL AUTOMATION (e.g. 'application leave likh to the email of manager@company.com by my mail student@college.edu')
+    const isEmailMentioned = ['gmail', 'email', 'mail', 'inbox', 'leave application', 'application leave'].some((w) =>
+      cleanText.includes(w)
+    );
 
-      const toMatch = cleanText.match(/\b(to|ko)\s+([a-zA-Z0-9._%+-]+(?:@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})?|[a-zA-Z]+)/i);
-      const subjectMatch = cleanText.match(/\b(about|subject|vishay|topic|regarding)\s+([^.]+)/i);
-
-      const recipient = toMatch ? toMatch[2] : '';
-      const subject = subjectMatch ? subjectMatch[2].trim() : '';
-
-      if (isCompose || recipient || subject) {
-        return {
-          action: 'compose_gmail',
-          platform: 'gmail',
-          parameters: { to: recipient, subject, body: '' },
-          response_text: `Opening Gmail draft${recipient ? ` for ${recipient}` : ''}.`,
-          raw_command: rawText,
-        };
-      } else {
+    if (isEmailMentioned) {
+      // If user simply asks to open inbox
+      if (
+        cleanText === 'open gmail' ||
+        cleanText === 'gmail kholo' ||
+        cleanText === 'check mail' ||
+        cleanText === 'inbox'
+      ) {
         return {
           action: 'open_gmail',
           platform: 'gmail',
@@ -166,6 +159,22 @@ export class IntentEngine {
           raw_command: rawText,
         };
       }
+
+      // Automatically compose full formatted email using our AI Email Engine
+      const email = defaultEmailEngine.composeFormattedEmail(rawText);
+
+      return {
+        action: 'compose_gmail',
+        platform: 'gmail',
+        parameters: {
+          to: email.to,
+          from: email.from,
+          subject: email.subject,
+          body: email.body,
+        },
+        response_text: `Composed professional ${email.topicType} email for ${email.to}. Opening in Gmail.`,
+        raw_command: rawText,
+      };
     }
 
     // 4. WHATSAPP WEB

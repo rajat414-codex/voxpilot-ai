@@ -13,10 +13,12 @@ export const App: React.FC = () => {
   const [transcript, setTranscript] = useState<string>('');
   const [commandInput, setCommandInput] = useState<string>('');
   const [actionStatus, setActionStatus] = useState<string | null>(null);
+  const [isAudioMuted, setIsAudioMuted] = useState<boolean>(false);
 
-  // In-Page Playable Media Players (Play video & Spotify directly in the web app)
+  // In-Page Playable Media Players & AI Email Draft Dock
   const [activeVideo, setActiveVideo] = useState<{ videoId: string; query: string; url: string | null } | null>(null);
   const [activeSpotify, setActiveSpotify] = useState<{ query: string; url: string | null; trackId?: string } | null>(null);
+  const [activeEmail, setActiveEmail] = useState<{ to: string; from?: string; subject: string; body: string } | null>(null);
 
   const speechEngineRef = useRef<SpeechEngine | null>(null);
   const visualizerHandleRef = useRef<AudioVisualizerHandle | null>(null);
@@ -60,6 +62,11 @@ export const App: React.FC = () => {
             url: `https://www.youtube.com/watch?v=${execResult.videoId}&autoplay=1`,
           });
         }
+      }
+
+      // If AI composed email, activate the email dock card!
+      if (execResult.emailData) {
+        setActiveEmail(execResult.emailData);
       }
 
       // 4. Status Badge Feedback
@@ -125,6 +132,17 @@ export const App: React.FC = () => {
     }
   };
 
+  // Toggle AI Voice Audio Mute/Unmute
+  const handleToggleAudioMute = () => {
+    if (speechEngineRef.current) {
+      const muted = speechEngineRef.current.toggleAudioMute();
+      setIsAudioMuted(muted);
+      if (!muted) {
+        speechEngineRef.current.speak('Voice audio enabled.');
+      }
+    }
+  };
+
   // Language change
   const handleLanguageChange = (lang: SupportedLanguage) => {
     setCurrentLang(lang);
@@ -164,6 +182,16 @@ export const App: React.FC = () => {
         </div>
 
         <div className="header-actions">
+          {/* Audio Output Speech Toggle */}
+          <div
+            className={`mode-pill ${!isAudioMuted ? 'active' : ''}`}
+            onClick={handleToggleAudioMute}
+            title={isAudioMuted ? 'Click to Enable Audio Speech Reply' : 'Click to Mute Audio Speech Reply'}
+            style={{ cursor: 'pointer' }}
+          >
+            <span>{!isAudioMuted ? '🔊 Audio: ON' : '🔇 Audio: MUTE'}</span>
+          </div>
+
           {/* Continuous Voice Toggle */}
           <div
             className={`mode-pill ${isContinuous && voiceState === 'listening' ? 'active' : ''}`}
@@ -222,6 +250,71 @@ export const App: React.FC = () => {
               : 'Click to Activate'}
           </div>
         </div>
+
+        {/* In-Page AI Composed Email Dock Card */}
+        {activeEmail && (
+          <div className="email-dock-card">
+            <div className="email-dock-top">
+              <div className="email-dock-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                </svg>
+                <span>AI Composed Email (Ready to Send)</span>
+              </div>
+              <div className="email-dock-actions">
+                <button
+                  className="media-tab-btn"
+                  onClick={() => {
+                    const url = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(activeEmail.to)}&su=${encodeURIComponent(activeEmail.subject)}&body=${encodeURIComponent(activeEmail.body)}`;
+                    defaultAutomationController.openExternalTab(url);
+                  }}
+                  title="Open directly in Gmail Compose"
+                >
+                  🚀 Open in Gmail Compose ↗
+                </button>
+                <button
+                  className="media-tab-btn"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`To: ${activeEmail.to}\nSubject: ${activeEmail.subject}\n\n${activeEmail.body}`);
+                    setActionStatus('Email draft copied to clipboard!');
+                    setTimeout(() => setActionStatus(null), 3000);
+                  }}
+                  title="Copy full email text"
+                >
+                  📋 Copy
+                </button>
+                <button
+                  className="media-close-btn"
+                  onClick={() => setActiveEmail(null)}
+                  title="Close email draft"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="email-meta-grid">
+              <div className="email-meta-row">
+                <span className="email-meta-label">To:</span>
+                <span className="email-meta-val">{activeEmail.to}</span>
+              </div>
+              {activeEmail.from && (
+                <div className="email-meta-row">
+                  <span className="email-meta-label">From:</span>
+                  <span className="email-meta-val">{activeEmail.from}</span>
+                </div>
+              )}
+              <div className="email-meta-row">
+                <span className="email-meta-label">Subject:</span>
+                <span className="email-meta-val subject-bold">{activeEmail.subject}</span>
+              </div>
+            </div>
+
+            <div className="email-body-preview">
+              <pre>{activeEmail.body}</pre>
+            </div>
+          </div>
+        )}
 
         {/* In-Page Playable YouTube Video Player Dock */}
         {activeVideo && (
@@ -332,7 +425,7 @@ export const App: React.FC = () => {
             <input
               type="text"
               className="omnibar-input"
-              placeholder="Ask or command anything... (e.g. 'tauba tauba play kro', 'kuch bhi play krde', 'video title carryminati')"
+              placeholder="Ask or command anything... (e.g. 'application leave likh to manager@company.com', 'tauba tauba play kro')"
               value={commandInput}
               onChange={(e) => setCommandInput(e.target.value)}
               autoFocus
@@ -357,6 +450,16 @@ export const App: React.FC = () => {
 
         {/* Natural Example Suggestion Chips */}
         <div className="suggestion-row">
+          <div
+            className="suggestion-chip"
+            onClick={() =>
+              handleChipClick(
+                'application leave likh to the email of manager@company.com by my mail student@college.edu'
+              )
+            }
+          >
+            ✉️ Leave Application Email
+          </div>
           <div className="suggestion-chip" onClick={() => handleChipClick('tauba tauba play kro')}>
             ▶ Tauba Tauba Play Kro
           </div>
@@ -368,9 +471,6 @@ export const App: React.FC = () => {
           </div>
           <div className="suggestion-chip" onClick={() => handleChipClick('video title carryminati roast')}>
             🎬 Video Title CarryMinati
-          </div>
-          <div className="suggestion-chip" onClick={() => handleChipClick('open gmail')}>
-            Open Gmail
           </div>
           <div className="suggestion-chip" onClick={() => handleChipClick('open whatsapp web')}>
             WhatsApp Web

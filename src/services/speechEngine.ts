@@ -19,6 +19,7 @@ export class SpeechEngine {
   public isListening = false;
   public shouldKeepListening = false;
   public isSpeaking = false;
+  public isAudioMuted = false;
   public currentLanguage: SupportedLanguage = 'en-IN';
   private synth: SpeechSynthesis | null = null;
   private preferredVoice: SpeechSynthesisVoice | null = null;
@@ -209,8 +210,17 @@ export class SpeechEngine {
     }
   }
 
+  public toggleAudioMute(): boolean {
+    this.isAudioMuted = !this.isAudioMuted;
+    if (this.isAudioMuted && this.synth) {
+      this.synth.cancel();
+      this.isSpeaking = false;
+    }
+    return this.isAudioMuted;
+  }
+
   public speak(text: string, onEnd?: () => void): void {
-    if (!this.synth || !text) {
+    if (this.isAudioMuted || !this.synth || !text) {
       if (onEnd) onEnd();
       return;
     }

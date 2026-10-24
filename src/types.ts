@@ -25,6 +25,7 @@ export type Platform =
 export interface IntentParameters {
   query?: string;
   to?: string;
+  from?: string;
   subject?: string;
   body?: string;
   phone?: string;
@@ -51,6 +52,12 @@ export interface ExecutionResult {
   simulated?: boolean;
   videoId?: string;
   query?: string;
+  emailData?: {
+    to: string;
+    from?: string;
+    subject: string;
+    body: string;
+  };
 }
 
 export interface TerminalLog {
