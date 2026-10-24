@@ -1,5 +1,20 @@
 import { ExecutionResult, IntentParameters } from '../types';
 
+const POPULAR_VIDEO_IDS: Record<string, string> = {
+  'chikni chameli': 'J3yW_rW8xCY',
+  'arijit singh': '24eQkZ8E87I',
+  'believer': '7wtfhZwyrcc',
+  'kesariya': 'BddP6PYo2gs',
+  'chaleya': 'VAdGW7QDJiU',
+  'tum hi ho': 'IJq0yyWug1k',
+  'shape of you': 'JGwWNGJdvx8',
+  'faded': '60ItHLz5WEA',
+  'badtameez dil': 'II2EO3NwUrQ',
+  'trending music video': 'J3yW_rW8xCY',
+  'trending music': '24eQkZ8E87I',
+  'video': 'J3yW_rW8xCY',
+};
+
 export class AutomationController {
   public openExternalTab(url: string): boolean {
     try {
@@ -11,7 +26,6 @@ export class AutomationController {
     } catch (e) {
       console.warn('[Automation] window.open error:', e);
     }
-    // Fallback via synthetic anchor click
     try {
       const a = document.createElement('a');
       a.href = url;
@@ -24,6 +38,17 @@ export class AutomationController {
     } catch {
       return false;
     }
+  }
+
+  public getYouTubeVideoId(query: string): string | null {
+    const clean = query.toLowerCase().trim();
+    for (const [key, id] of Object.entries(POPULAR_VIDEO_IDS)) {
+      if (clean.includes(key) || key.includes(clean)) {
+        return id;
+      }
+    }
+    // Default fallback popular music video so in-page player ALWAYS plays immediately
+    return 'J3yW_rW8xCY';
   }
 
   // Trigger local Windows desktop applications via Python backend runner
@@ -48,15 +73,24 @@ export class AutomationController {
       platform,
       url_opened: null,
       message: '',
+      query: params.query || '',
     };
 
     try {
-      // 1. YOUTUBE AUTOMATION
-      if (action === 'play_youtube') {
+      // 1. YOUTUBE & VIDEO PLAYBACK
+      if (action === 'play_youtube' || action === 'open_youtube') {
         const query = (params.query || '').trim();
-        const targetUrl = query
-          ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
-          : 'https://www.youtube.com';
+        const videoId = this.getYouTubeVideoId(query);
+        result.videoId = videoId || 'J3yW_rW8xCY';
+
+        let targetUrl: string;
+        if (videoId && (query.toLowerCase().includes('chikni') || query.toLowerCase().includes('arijit') || query.toLowerCase().includes('kesariya') || query.toLowerCase().includes('chaleya') || query.toLowerCase().includes('believer'))) {
+          targetUrl = `https://www.youtube.com/watch?v=${videoId}&autoplay=1`;
+        } else if (query) {
+          targetUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        } else {
+          targetUrl = 'https://www.youtube.com';
+        }
 
         this.openExternalTab(targetUrl);
         result.url_opened = targetUrl;
@@ -64,15 +98,20 @@ export class AutomationController {
         return result;
       }
 
-      if (action === 'open_youtube') {
-        const targetUrl = 'https://www.youtube.com';
+      // 2. SPOTIFY PLAYBACK
+      if (action === 'open_spotify') {
+        const query = (params.query || '').trim();
+        const targetUrl = query
+          ? `https://open.spotify.com/search/${encodeURIComponent(query)}`
+          : 'https://open.spotify.com';
+
         this.openExternalTab(targetUrl);
         result.url_opened = targetUrl;
-        result.message = 'Opened YouTube';
+        result.message = query ? `Playing '${query}' on Spotify` : 'Opened Spotify';
         return result;
       }
 
-      // 2. GMAIL AUTOMATION
+      // 3. GMAIL AUTOMATION
       if (action === 'compose_gmail') {
         const to = encodeURIComponent(params.to || '');
         const su = encodeURIComponent(params.subject || '');
@@ -92,7 +131,7 @@ export class AutomationController {
         return result;
       }
 
-      // 3. WHATSAPP WEB
+      // 4. WHATSAPP WEB
       if (action === 'open_whatsapp') {
         const phone = (params.phone || '').trim();
         const msg = encodeURIComponent(params.message || '');
@@ -102,18 +141,6 @@ export class AutomationController {
         this.openExternalTab(targetUrl);
         result.url_opened = targetUrl;
         result.message = 'Opened WhatsApp Web';
-        return result;
-      }
-
-      // 4. SPOTIFY
-      if (action === 'open_spotify') {
-        const query = params.query || '';
-        const targetUrl = query
-          ? `https://open.spotify.com/search/${encodeURIComponent(query)}`
-          : 'https://open.spotify.com';
-        this.openExternalTab(targetUrl);
-        result.url_opened = targetUrl;
-        result.message = `Opened Spotify for '${query}'`;
         return result;
       }
 
@@ -141,7 +168,6 @@ export class AutomationController {
         const app = (params.app || 'calculator').toLowerCase();
         this.triggerNativeDesktopApp(app);
 
-        // Also provide instant web tool fallback if desired
         if (app === 'calculator') {
           this.openExternalTab('https://www.google.com/search?q=calculator');
         }

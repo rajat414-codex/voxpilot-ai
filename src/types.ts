@@ -49,6 +49,8 @@ export interface ExecutionResult {
   message: string;
   error?: string;
   simulated?: boolean;
+  videoId?: string;
+  query?: string;
 }
 
 export interface TerminalLog {
