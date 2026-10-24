@@ -1,22 +1,23 @@
-# 🚀 VoxPilot AI - Autonomous Multilingual Voice Agent
+# 🚀 VoxPilot AI - Autonomous Multilingual Voice Agent (React Edition)
 
-A Hybrid Voice Automation Agent designed to understand **Hindi, English, and Hinglish** commands and execute real-world tasks across multiple platforms (YouTube, Gmail, WhatsApp Web, Google Search, and native Windows desktop apps).
+A Hybrid Voice Automation Agent designed to understand **Hindi, English, and Hinglish** commands and execute real-world tasks across multiple platforms (YouTube, Gmail, WhatsApp Web, Google Search, and native desktop apps), now built as a high-performance **React + TypeScript + Vite** application.
 
 ---
 
 ## 🌟 Key Capabilities
 
-- **Hindi + English + Hinglish Voice Recognition**: Natural phonetics and accent processing (e.g., *"bhai youtube pe chikni chameli chalao"*).
-- **Deep YouTube Automation**: Resolves the exact top video ID and autoplays the song directly in your browser.
+- **Hindi + English + Hinglish Voice Recognition**: Natural phonetics and accent processing using the Web Speech API (e.g., *"bhai youtube pe chikni chameli chalao"*).
+- **Deep YouTube Automation**: Resolves exact top video IDs with interactive in-app player and external playback links.
 - **Gmail Automation**: Opens direct drafts with pre-filled recipient and subject.
-- **Native Windows Desktop Control**: Launches desktop applications like Calculator, Notepad, File Explorer, Terminal.
-- **Local & Open-Source First**:
-  - Built-in High-Accuracy Hinglish Natural Language Processing (zero API keys or heavy GPU required).
-  - Ready for local **Ollama** models (`llama3`, `mistral`, `phi3`) if installed.
+- **WhatsApp Web Automation**: Composes direct WhatsApp messages to phone numbers or opens WhatsApp Web.
+- **Interactive Desktop Control & Simulators**: Interactive Calculator, Notepad with instant `.txt` file export, and system launcher dispatches.
+- **Client-Side Zero-Latency Hybrid NLP Engine**:
+  - High-accuracy Hinglish Natural Language Processing (zero API keys or heavy GPU required).
+  - Handles transliterated Hindi, Devanagari script, and colloquial Indian phrases.
 - **Futuristic Cyber-Glassmorphism UI**:
-  - Live audio-reactive quantum orb visualizer with Web Audio API.
+  - Live audio-reactive quantum orb visualizer powered by Web Audio API and HTML5 Canvas.
   - Real-time speech transcription badge.
-  - Interactive Action Console logging intent extraction and browser dispatch.
+  - Interactive Action Console logging intent extraction and browser dispatch in real time.
 
 ---
 
@@ -28,42 +29,22 @@ A Hybrid Voice Automation Agent designed to understand **Hindi, English, and Hin
 | **YouTube** | *"Arijit Singh ke gaane sunao"* | *"Play Arijit Singh songs on YouTube"* | Plays Arijit Singh hits on YouTube |
 | **Gmail** | *"Gmail kholo aur Rohit ko email bhejo"* | *"Open Gmail and compose email to Rohit"* | Opens Gmail compose window with draft ready |
 | **WhatsApp** | *"WhatsApp Web open karo"* | *"Open WhatsApp Web"* | Opens WhatsApp Web |
-| **Desktop** | *"Calculator kholo"* | *"Open Calculator"* | Launches Windows Calculator |
-| **Desktop** | *"Notepad kholo"* | *"Open Notepad"* | Launches Notepad |
+| **Desktop** | *"Calculator kholo"* | *"Open Calculator"* | Launches Windows Calculator simulator |
+| **Desktop** | *"Notepad kholo"* | *"Open Notepad"* | Launches Notepad with file saving |
 | **Google** | *"Google pe weather search karo"* | *"Search weather on Google"* | Searches weather on Google |
 
 ---
 
-## 🚀 How to Run
+## 🛠️ Development
 
-Run the one-click launcher from PowerShell / Command Prompt:
+Run the dev server:
 
-```powershell
-python "C:\Users\RAJAT KAMAL\.gemini\antigravity-ide\scratch\voxpilot-voice-agent\run.py"
+```bash
+npm run dev
 ```
 
-This will automatically:
-1. Start the VoxPilot backend API server at `http://localhost:8000`
-2. Open the futuristic web dashboard in your default browser.
+Build for production:
 
----
-
-## 📁 Project Structure
-
-```
-voxpilot-voice-agent/
-├── backend/
-│   ├── intent_engine.py       # Multilingual NLP parser (Hindi, Hinglish, English) + Ollama support
-│   ├── automation.py          # Platform automations (YouTube autoplay, Gmail, WhatsApp, Desktop)
-│   └── server.py              # Zero-dependency Threading HTTP & REST API server
-├── public/
-│   ├── css/
-│   │   └── style.css          # Futuristic cyber-glassmorphism theme & animations
-│   ├── js/
-│   │   ├── visualizer.js      # Web Audio API reactive canvas visualizer
-│   │   ├── speech.js          # Speech-to-Text & Text-to-Speech engine
-│   │   └── app.js             # Client coordinator & live terminal logs
-│   └── index.html             # Main dashboard UI
-├── run.py                     # One-click launcher
-└── README.md
+```bash
+npm run build
 ```

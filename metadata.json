@@ -1,0 +1,8 @@
+{
+  "name": "VoxPilot AI - Multilingual Voice Automation Agent",
+  "description": "Autonomous multi-platform voice agent understanding Hindi, English, and Hinglish. Automates YouTube playback, Gmail, WhatsApp Web, and Desktop applications with interactive visualizer and speech recognition.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
